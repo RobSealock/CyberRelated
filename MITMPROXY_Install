@@ -1,0 +1,172 @@
+# Installation of Mitmproxy Lab Assignment
+####################################################################
+# Ref
+# https://docs.mitmproxy.org/stable/concepts-options/#view_filter
+# 
+# rsealock v0.1 08April25 
+####################################################################
+#
+# Build Overview
+# A single NIC Ubuntu Server will act as a Transparent HTTP/S proxy.
+# Ubuntu Server can leverage the DHCP address to gain IP / Subnet, Default Gateway, and DNS Server on your network.
+# A client of any OS that can support a browser will be used for testing (Linux, MacOS, Windows) via the static assignment of the default gateway and DNS pointed to the proxy address
+# Information on client configuration can be found at mitm.it
+# DO NOT set the browser or OS proxy server settings while in transparent mode (funniness will ensure)
+####################################################################
+# Installation using ubuntu-24.10-live-server-arm64.iso
+# add openssh during install or add after with sudo apt-get install openssh-server
+# to gain copy/paste perform via SSH to your server via client
+
+# At boot, make a note of your ethernet adapter and IP address
+# I have left my server IP address of 192.168.64.9 and ethernet adapter of enp0s1 in the config
+# If needed, install ip tools apt install net-tools to use the ifconfig cmd
+#
+# I'm lazy and will switch to root and do all cmds as root, if you are not, add “sudo” at start of cmds
+
+
+sudo - i
+
+# update install
+apt upgrade
+
+#install MItMProxy on Ubuntu
+apt-get install -y pipx
+    pipx ensurepath
+    pipx install mitmproxy
+
+# If you want, logoff and on to have path to take effect in local variables
+# you will reboot in a bit which is the same thing
+
+# as per mitm docs uncomment the following line
+sudo nano /etc/sysctl.conf
+	net.ipv4.ip_forward = 1
+
+#apply changes
+sudo sysctl -p
+
+# add routing via ip tables
+# change the enp0s1 to your nic noted at boot
+iptables -t nat -A PREROUTING -i enp0s1 -p tcp --dport 80 -j REDIRECT --to-port 8080
+iptables -t nat -A PREROUTING -i enp0s1 -p tcp --dport 443 -j REDIRECT --to-port 8080
+ip6tables -t nat -A PREROUTING -i enp0s1 -p tcp --dport 80 -j REDIRECT --to-port 8080
+ip6tables -t nat -A PREROUTING -i enp0s1 -p tcp --dport 443 -j REDIRECT --to-port 8080
+
+# check your tables
+sudo iptables -t nat -L -v -n
+
+# to maintain iptables through reboots
+# https://help.ubuntu.com/community/IptablesHowTo#Saving_iptables
+# install iptables-persistent
+apt install iptables-persistent
+
+# it should import the current rules
+# you can check by
+nano /etc/iptables/rules.v4
+
+# if not present or you change you can resave via
+iptables-save > /etc/iptables/rules.v4
+# do the same for v6
+
+#reboot and check iptables
+sudo iptables -t nat -L -v -n
+
+# test you install
+mitmproxy --mode transparent --showhost
+
+# Assuming mitm proxy started correctly you can quit and get your test client ready
+
+# Option 1 - easy way
+# Root CA on clients
+# https://docs.mitmproxy.org/stable/concepts-certificates/
+# go to mitm.it and install the root cert to your client via the instructions there
+http://mitm.it/
+
+# Once done you can manually set your client's default gateway and dns to mitmproxy server
+
+# Option 2 - Creating Your own cert for this
+# install openssl
+apt install openssl
+
+# create a directory for this such as 
+mkdir /etc/CAcert/
+cd /etc/CAcert/
+
+# create new ca cert
+openssl req -x509 -new -nodes -sha256 -out ca.crt -addext keyUsage=critical,keyCertSign
+#accept defaults with the exception on Common Name, enter '*'
+cat provkey.pem ca.crt > mitmproxy-ca.pem
+
+# export for use in client
+openssl x509 -in mitmproxy-ca.pem -out my_mitmproxy-ca.crt
+
+# set the directory to the new cert
+# --set confdir=DIRECTORY
+mitmproxy --set confdir=/etc/Cacert/
+
+# if all worked, you can copy mitmproxy-ca.pem to client and import as a root ca
+# set client to default gateway and dns
+
+# Assuming you are using the built in cert (exlude the confdir)
+# Bypassing specific domains from man in the middle poxy
+# https://docs.mitmproxy.org/stable/howto-ignoredomains/
+# edit the mitmproxy config file
+nano ~/.mitmproxy/config.yaml
+---
+console_eventlog_verbosity: error
+console_mouse: false
+console_palette: dark
+ignore-hosts: '^(.+\.)?microsoft\.com''^(.+\.)?apple\.com'
+web_password: password
+save_stream_file: mitmproxy.log
+
+# this will add microsoft and apple to the bypass
+# sets web interface to the password: 'passowrd'
+# sets log file location to mitmproxy.log
+
+# Optional for ingestion of log file
+# Snort integration
+# https://docs.mitmproxy.org/stable/concepts-options/
+
+# Using the MITMWEB command to start the proxy and gain web interface for proxy
+# command on its own
+# mitmweb
+# this will only be accessable via the following address
+# http://localhost:8081
+
+# start mitmweb with custom port (9090) and on the servers IP (replace 192.168.64.9)
+mitmweb --web-host 192.168.64.9 --web-port 9090 --mode transparent
+
+# from the client attept to access server:port for web interface
+# if all is working you can add the ip and port to the config.yaml file to shorten the cmd to 'mitmweb --mode transparent'
+nano ~/.mitmproxy/config.yaml
+web_host: 192.168.64.9
+web_port: 9090
+
+# if all works you should see something like
+# HTTP(S) proxy listening at *:8080.
+# Web server listening at http://192.168.64.9:9090/
+#No web browser found. Please open a browser and point it to http://192.168.64.9:9090/
+
+# Add Mitmweb as service w/auto start
+nano /etc/systemd/system/mitmweb.service
+[Unit]
+Description=mitmweb Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/mitmweb --mode transparent
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# reload 
+sudo systemctl daemon-reload
+sudo systemctl enable mitmweb
+
+# reboot for a final check
+# if all works point client at proxy
+# Ensure for transparent mode that you DO NOT set the client with any PROXY settings
+# Clients default gateway should be the proxy IP and the DNS server address should be proxy IP
