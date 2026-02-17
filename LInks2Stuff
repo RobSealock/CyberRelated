@@ -1,0 +1,35 @@
+https://tlpblack.net/
+#
+https://github.com/sharkeonix/nmap-unleashed/
+  sudo apt install -y nmap xsltproc grep
+  pipx ensurepath
+  pipx install git+https://github.com/sharkeonix/nmap-unleashed.git
+  # now "nu" and "nmapUnleashed" are available
+#
+https://www.credrelay.com/p/claude-code-homelab-hack
+#
+https://github.com/TheRealSirHaXalot/AntiHunter-Command-Control-PRO
+  AntiHunter Command & Control PRO turns raw radio/mesh telemetry into actionable situational awareness.
+#
+https://github.com/BrownFineSecurity/iothackbot
+#
+https://github.com/microsoft/BitNet
+  itnet.cpp is the official inference framework for 1-bit LLMs (e.g., BitNet b1.58). It offers a suite of optimized kernels, that support fast and lossless inference of 1.58-bit models on CPU and GPU (NPU support will coming next).
+#
+https://github.com/Ilias1988?tab=repositories
+  https://github.com/Ilias1988/Hacking-Cheatsheets
+  https://github.com/Ilias1988/ReverseShell-Web
+  https://github.com/Ilias1988/LOLBins-Reference
+https://ilias1988.github.io/LOLBins-Reference/
+#
+https://github.com/francoisfried/CyberWiki
+https://github.com/francoisfried/Defender-Advanced-Hunting-Queries
+#
+https://github.com/RedBlueLabs/theMEG/blob/main/changelog
+  Wireshark Cyber Security Profile
+#
+https://haguichi.net/
+https://vpn.net/
+#
+
+
