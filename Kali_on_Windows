@@ -1,0 +1,60 @@
+
+Interesting Find:
+https://github.com/jamesstringer90/Easy-GPU-PV
+https://www.youtube.com/watch?v=MH3ArfQdgME&t=97s
+
+Three Options for gaining this:
+1. No WSL2 driver, but found this:https://github.com/Nislaco/Linux-GPU-V-Scripts-for-Hyper-V
+2. WSL
+3. Deploy graphics devices using Discrete Device Assignment - GPU Passthrough. It completely disconnects the GPU from your Windows host and gives it exclusively to the VM.
+https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/deploy/deploying-graphics-devices-using-dda
+SurveyDDA.ps1 on GitHub
+URL: https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/main/hyperv-tools/DiscreteDeviceAssignment/SurveyDDA.ps1
+
+Windows Sub-System for Linux
+https://learn.microsoft.com/en-us/windows/wsl/
+Near-native GPU performance for cracking tools without managing custom kernels. You can use Win-Kex to get a full graphical desktop.
+User: Rob
+wsl --install -d kali-Linux
+sudo apt update && sudo apt install -y kali-win-kex
+sudo apt install -y kali-linux-large
+
+Connect via Kex
+(windows) 			kex --win -s
+(RDP)(localhost:3390) 		kex --esm --ip -s
+(seamless)			kex --sl -s
+--
+kex stop
+
+Add GPU Support
+sudo apt update
+sudo apt install -y nvidia-cuda-toolkit
+nvidia-smi
+From windows, create a file to disabled win mgnt of sockets for video
+C:\Users\rob> .\.wslconfig
+[wsl2]
+guiApplications=false
+
+troubleshot: 
+ip addr show eth0 :3390
+remove wayland: sudo apt remove liblayer-shell-qt-dev
+update: sudo apt reinstall xfce4-notifyd
+
+wsl --shutdown
+kex passwd
+
+Hyper-V
+https://www.kali.org/get-kali/#kali-installer-images
+https://www.kali.org/docs/virtualization/install-hyper-v-guest-vm/
+User: Rob
+VMem: 12288	VCPU:10
+Generation 2
+	Security → Disable Secure Boot
+	Select Microsoft UEFI Certificate Authority
+
+
+Updates:
+cat /etc/apt/sources.list
+sudo apt update
+sudo apt full-upgrade -y
+sudo apt autoremove
